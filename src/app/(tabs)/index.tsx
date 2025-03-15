@@ -19,7 +19,7 @@ interface Genre {
   picture_xl: string;
 }
 
-const HomeStack = createStackNavigator();
+// const HomeStack = createStackNavigator();
 
 export default function HomeScreen() {
 

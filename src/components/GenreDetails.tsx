@@ -28,24 +28,39 @@ export default function GenreDetailsScreen() {
 
   const { playTrack } = useMusicPlayer();
 
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const fetchTracks = async () => {
     const url = `https://api.deezer.com/genre/${genreId}/artists`;
 
     try {
       const response = await fetch(url);
       const result = await response.json();
-      if (result.data) {
-        const artistIds = result.data.map((artist: any) => artist.id);
-        const tracksPromises = artistIds.map((artistId: number) =>
-          fetch(`https://api.deezer.com/artist/${artistId}/top?limit=5`).then((res) => res.json())
-        );
+      console.log('API Response:', result); // Log the entire response
+
+      if (result.data && Array.isArray(result.data)) {
+        const artistIds = result.data
+          .filter((artist: any) => artist && typeof artist.id === 'number')
+          .map((artist: any) => artist.id);
+
+        if (artistIds.length === 0) {
+          setError('No valid artist data found.');
+          setIsLoading(false);
+          return;
+        }
+
+        const tracksPromises = artistIds.map(async (artistId: number, index: number) => {
+          await delay(index * 100); // Add a 100ms delay between each request
+          const response = await fetch(`https://api.deezer.com/artist/${artistId}/top?limit=5`);
+          return response.json();
+        });
 
         const tracksResults = await Promise.all(tracksPromises);
-        const allTracks = tracksResults.flatMap((res) => res.data);
+        const allTracks = tracksResults.flatMap((res) => res.data || []);
 
         // Remove duplicates
         const uniqueTracks = allTracks.reduce((acc: Track[], track: Track) => {
-          if (!acc.find((t) => t.id === track.id)) {
+          if (track && !acc.find((t) => t.id === track.id)) {
             acc.push(track);
           }
           return acc;
@@ -53,11 +68,12 @@ export default function GenreDetailsScreen() {
 
         setTracks(uniqueTracks);
       } else {
-        setError('No tracks found for this genre.');
+        console.log('Unexpected API response structure:', result);
+        setError('Unexpected data structure from API.');
       }
     } catch (error) {
       console.error('Error fetching tracks: ', error);
-      setError('Failed to load tracks.');
+      setError('Failed to load tracks. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -103,12 +119,16 @@ export default function GenreDetailsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Top Tracks in {genreName}</Text>
-      <FlatList
-        data={tracks}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingBottom: 100 }} 
-      />
+      {tracks.length > 0 ? (
+        <FlatList
+          data={tracks}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+      ) : (
+        <Text style={styles.noTracksText}>No tracks found for this genre.</Text>
+      )}
     </View>
   );
 }
@@ -162,5 +182,11 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 14,
     color: '#555',
+  },
+  noTracksText: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
