@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "zumic.com"
+      "package": "com.zumic.musicapp"
     },
     "web": {
       "bundler": "metro",
@@ -51,6 +51,7 @@
     },
     "updates": {
       "url": "https://u.expo.dev/c3b53657-7b5b-4971-aae3-77840d595f7f"
-    }
+    },
+    "owner": "yephonekyaw"
   }
 }
